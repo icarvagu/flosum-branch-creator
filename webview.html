@@ -395,13 +395,19 @@
 </head>
 <body>
 
-<!-- ── 0: Org ── -->
+<!-- ── 0: Org + Repo ── -->
 <div class="panel">
   <div class="panel-header" data-i18n="orgActive">Org ativa</div>
-  <select id="orgSelect" class="org-select">
-    <option value="">Carregando...</option>
+  <div style="display:flex;align-items:center;gap:6px">
+    <select id="orgSelect" class="org-select" style="flex:1">
+      <option value="">Carregando...</option>
+    </select>
+    <span class="org-status" id="orgStatus"></span>
+  </div>
+  <div class="panel-header" style="margin-top:8px" data-i18n="repoLabel">Repositório</div>
+  <select id="repoSelect" class="org-select">
+    <option value="">—</option>
   </select>
-  <div class="org-status" id="orgStatus"></div>
 </div>
 
 <!-- ── 1: Alterações locais ── -->
@@ -488,7 +494,10 @@
 
 <!-- ── 4: Log ── -->
 <div class="panel">
-  <div class="panel-header" data-i18n="logHeader">Log</div>
+  <div class="panel-header" style="cursor:pointer" id="logToggle">
+    <span data-i18n="logHeader">Log</span>
+    <span id="logChevron" style="font-size:10px;opacity:0.6">▼</span>
+  </div>
   <div class="log-area" id="logArea"></div>
 </div>
 
@@ -498,7 +507,7 @@
   // ── i18n ──────────────────────────────────────────────────────────────────
   const TRANSLATIONS = {
     pt: {
-      orgActive: 'Org ativa', connectedStatus: 'Conectado',
+      orgActive: 'Org ativa', repoLabel: 'Repositório', connectedStatus: 'Conectado',
       noOrgs: 'Nenhuma org conectada', orgHint: 'Execute: sf org login web',
       staged: 'Staged', changes: 'Alterações',
       noStaged: 'Nenhum item staged', noChanges: 'Nenhuma alteração',
@@ -527,7 +536,7 @@
       otherFiles: 'outro(s) arquivo(s) (tests, configs…)',
     },
     en: {
-      orgActive: 'Active Org', connectedStatus: 'Connected',
+      orgActive: 'Active Org', repoLabel: 'Repository', connectedStatus: 'Connected',
       noOrgs: 'No connected orgs', orgHint: 'Run: sf org login web',
       staged: 'Staged', changes: 'Changes',
       noStaged: 'No items staged', noChanges: 'No local changes',
@@ -911,6 +920,14 @@
         document.getElementById('orgStatus').className = 'org-status error';
         break;
 
+      case 'repos': {
+        const sel = document.getElementById('repoSelect');
+        sel.innerHTML = msg.repos.map(r =>
+          `<option value="${r}"${r === msg.current ? ' selected' : ''}>${r}</option>`
+        ).join('');
+        break;
+      }
+
       case 'update':
         _lastMetadata   = msg.metadata;
         _lastChanges    = msg.changes;
@@ -1015,8 +1032,23 @@
     addLog(`${t.switchingOrg} ${alias}`, 'info');
   });
 
+  document.getElementById('repoSelect').addEventListener('change', function () {
+    if (this.value) vscode.postMessage({ command: 'setRepo', repo: this.value });
+  });
+
+  // ── Log toggle ──
+  let logCollapsed = false;
+  document.getElementById('logToggle').addEventListener('click', () => {
+    logCollapsed = !logCollapsed;
+    const area = document.getElementById('logArea');
+    const chevron = document.getElementById('logChevron');
+    area.style.display = logCollapsed ? 'none' : '';
+    chevron.textContent = logCollapsed ? '▶' : '▼';
+  });
+
   // ── Initial load ──
   vscode.postMessage({ command: 'loadOrgs' });
+  vscode.postMessage({ command: 'loadRepos' });
   doRefresh();
 </script>
 </body>

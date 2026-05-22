@@ -60,6 +60,7 @@ function getGitChanges(cwd) {
 class FlosumBranchProvider {
   constructor() {
     this._view = null;
+    this._currentRepo = null;
   }
 
   resolveWebviewView(webviewView) {
@@ -77,6 +78,8 @@ class FlosumBranchProvider {
       if (msg.command === 'pullBranch') this._pullBranch();
       if (msg.command === 'loadOrgs') this._loadOrgs();
       if (msg.command === 'setOrg') this._setOrg(msg.alias);
+      if (msg.command === 'loadRepos') this._loadRepos();
+      if (msg.command === 'setRepo') this._currentRepo = msg.repo;
     });
 
     webviewView.onDidChangeVisibility(() => {
@@ -90,6 +93,7 @@ class FlosumBranchProvider {
 
     this._setupWatcher(webviewView);
     this._loadOrgs();
+    this._loadRepos();
     this._sendData();
     this._post({ command: 'setLocale', locale: vscode.env.language });
   }
@@ -188,6 +192,7 @@ class FlosumBranchProvider {
   }
 
   _getRepo() {
+    if (this._currentRepo) return this._currentRepo;
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) return 'Comerc';
     try {
@@ -197,6 +202,20 @@ class FlosumBranchProvider {
       ).toString();
       return JSON.parse(raw)?.result?.records?.[0]?.Name ?? 'Comerc';
     } catch (_) { return 'Comerc'; }
+  }
+
+  _loadRepos() {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (!folder) return;
+    try {
+      const raw = execSync(
+        'sf data query --query "SELECT Name FROM Flosum__Repository__c ORDER BY Name" --json 2>/dev/null',
+        { cwd: folder.uri.fsPath, shell: '/bin/zsh', timeout: 10000 }
+      ).toString();
+      const repos = JSON.parse(raw)?.result?.records?.map(r => r.Name) ?? [];
+      if (repos.length && !this._currentRepo) this._currentRepo = repos[0];
+      this._post({ command: 'repos', repos, current: this._currentRepo });
+    } catch (_) {}
   }
 
   _terminal(cwd) {
