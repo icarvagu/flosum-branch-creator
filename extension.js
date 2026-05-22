@@ -5,57 +5,7 @@ const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-
-const SF_METADATA_DIRS = new Set([
-  'classes', 'triggers', 'lwc', 'aura', 'flows', 'objects',
-  'pages', 'permissionsets', 'layouts', 'staticresources',
-  'components', 'email', 'reports', 'dashboards', 'tabs',
-  'profiles', 'roles', 'queues', 'groups', 'customMetadata',
-]);
-
-const TEST_RE = /Tests?$/i;
-
-function extractMetadata(changes) {
-  const itemMap = new Map();
-  for (const { file } of changes) {
-    const parts = file.split('/');
-    const idx = parts.findIndex(p => SF_METADATA_DIRS.has(p));
-    if (idx < 0 || !parts[idx + 1]) continue;
-    let name = parts[idx + 1].replace(/\.[^.]+$/, '').replace(/-meta$/, '');
-    if (!name) continue;
-    const key = `${parts[idx]}/${name}`;
-    if (!itemMap.has(key)) {
-      itemMap.set(key, { name, type: parts[idx], files: [], isTest: TEST_RE.test(name) });
-    }
-    itemMap.get(key).files.push(file);
-  }
-  return [...itemMap.values()].filter(m => !m.isTest);
-}
-
-function toKebab(str) {
-  return str.replace(/([A-Z])/g, (_, c) => '-' + c.toLowerCase()).replace(/^-/, '');
-}
-
-function generateBranchName(metadata) {
-  if (metadata.length === 0) {
-    return `feature/changes-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
-  }
-  const slugs = [...new Set(metadata.slice(0, 3).map(m => toKebab(m.name)))];
-  return `feature/${slugs.join('-')}`;
-}
-
-function getGitChanges(cwd) {
-  const raw = execSync('git -c core.quotepath=false status --porcelain', { cwd }).toString();
-  return raw
-    .split('\n')
-    .filter(l => l.trim())
-    .map(l => {
-      const status = l.slice(0, 2).trim();
-      let file = l.slice(3).trim();
-      if (file.startsWith('"') && file.endsWith('"')) file = file.slice(1, -1);
-      return { status, file };
-    });
-}
+const { extractMetadata, generateBranchName, getGitChanges } = require('./utils');
 
 class FlosumBranchProvider {
   constructor() {
@@ -125,7 +75,7 @@ class FlosumBranchProvider {
   _sendData() {
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) {
-      this._post({ command: 'error', message: 'Nenhum workspace aberto.' });
+      this._post({ command: 'error', message: 'Abra uma pasta de projeto Salesforce para usar esta extensão.' });
       return;
     }
     try {
@@ -142,7 +92,12 @@ class FlosumBranchProvider {
         suggestion: generateBranchName(metadata),
       });
     } catch (e) {
-      this._post({ command: 'error', message: e.message });
+      const msg = e.message?.includes('not a git repository')
+        ? 'Este projeto não é um repositório git. Execute "git init" no terminal.'
+        : e.message?.includes('git: command not found') || e.message?.includes('ENOENT')
+        ? 'Git não encontrado. Verifique se o git está instalado e no PATH.'
+        : `Erro ao ler alterações: ${e.message}`;
+      this._post({ command: 'error', message: msg });
     }
   }
 
@@ -291,7 +246,10 @@ class FlosumBranchProvider {
       } catch (_) {}
       this._post({ command: 'orgs', orgs, current });
     } catch (e) {
-      this._post({ command: 'orgsError', message: e.message });
+      const msg = e.message?.includes('command not found') || e.message?.includes('ENOENT')
+        ? 'Salesforce CLI não encontrado. Instale com: npm install -g @salesforce/cli'
+        : 'Erro ao listar orgs. Verifique se o Salesforce CLI está instalado.';
+      this._post({ command: 'orgsError', message: msg });
     }
   }
 
@@ -329,7 +287,10 @@ class FlosumBranchProvider {
         .sort((a, b) => a.name.localeCompare(b.name));
       this._post({ command: 'branches', branches });
     } catch (e) {
-      this._post({ command: 'branchesError', message: e.message });
+      const msg = e.message?.includes('command not found') || e.message?.includes('ENOENT')
+        ? 'Plugin "sf flosum" não encontrado. Instale via Flosum Setup.'
+        : `Erro ao listar branches: ${e.message}`;
+      this._post({ command: 'branchesError', message: msg });
     }
   }
 
