@@ -5,7 +5,8 @@
 
 A VS Code sidebar extension for [Flosum](https://flosum.com) DevOps — manage branches, push metadata and retrieve changes directly from VS Code, without leaving the editor.
 
-![Flosum Branch Creator](screenshot.png)
+<img width="460" height="629" alt="image" src="https://github.com/user-attachments/assets/5f6b5481-f54f-48a2-ba20-34cdd21426c4" />
+
 
 ---
 
