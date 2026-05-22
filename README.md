@@ -52,7 +52,7 @@ UI automatically adapts to your VS Code language: **Portuguese (pt-BR)** or **En
 | Tool | Install |
 |------|---------|
 | [Salesforce CLI (`sf`)](https://developer.salesforce.com/tools/salesforcecli) | `npm install -g @salesforce/cli` |
-| [Flosum SF CLI plugin](https://flosum.com) | Installed via Flosum setup |
+| [Flosum SF CLI plugin (`sf`)](https://flosum.com) | `npm install -g flosum-sfdx-plugin` |
 | Flosum org authorized | `sf org login web --alias flosum-org` |
 
 Your project must have a `sfdx-project.json` (standard Salesforce DX structure).
