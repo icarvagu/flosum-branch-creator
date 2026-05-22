@@ -12,10 +12,10 @@ A VS Code sidebar extension for [Flosum](https://flosum.com) DevOps — manage b
 ## Features
 
 ### Staged / Changes view
-Exactly like VS Code's Source Control — items detected from `git status` appear in **Changes**. Click `+` (or the item) to stage what you want to push. Click `−` to unstage.
+Exactly like VS Code's Source Control — items detected from `git status` appear in **Changes**. Click `+` (or the item) to stage what you want to push. Click `−` to unstage. Stage all with `↑↑`, unstage all with `↓↓`.
 
 ### Smart branch name suggestion
-The branch name is auto-generated from the Salesforce metadata you staged (`AccountTrigger` → `feature/account-trigger`). Fully editable before creating.
+The branch name is auto-generated from the staged Salesforce metadata (`AccountTrigger` → `feature/account-trigger`). Fully editable before creating.
 
 ### Selective push
 Only the staged files are pushed to Flosum — not the entire `force-app/main/default`. Uses a temporary directory behind the scenes, so your project structure stays clean.
@@ -35,8 +35,11 @@ Discard individual items or all staged files with the 🗑 button. Works correct
 ### Auto-refresh
 The sidebar updates automatically when you save a file or when files change on disk — no manual refresh needed.
 
-### Org selector
-Switch between authorized Salesforce orgs directly from the sidebar. Uses `sf config set target-org` under the hood.
+### Org + Repository selector
+Switch between authorized Salesforce orgs and Flosum repositories directly from the sidebar. Connection status is shown inline next to the org dropdown.
+
+### Collapsible log
+Click the **Log** header to collapse/expand the log panel.
 
 ### i18n
 UI automatically adapts to your VS Code language: **Portuguese (pt-BR)** or **English**.
@@ -65,7 +68,7 @@ Your project must have a `sfdx-project.json` (standard Salesforce DX structure).
 
 2. **Open the Flosum sidebar** — click the branch icon in the Activity Bar.
 
-3. **Select your org** from the dropdown at the top.
+3. **Select your org and repository** from the dropdowns at the top.
 
 ---
 
@@ -88,15 +91,6 @@ In the **Branches Flosum** section, click **↺** to load the list, then **Check
 ### Discard changes
 - Hover any item → click 🗑 to discard that item only
 - Click **🗑 Discard staged** to discard everything in Staged
-
----
-
-## Extension Settings
-
-No configuration required. The extension reads:
-- `sf config get target-org` for the active org
-- `git status` for local changes
-- `Flosum__Repository__c` SOQL for the repository name
 
 ---
 

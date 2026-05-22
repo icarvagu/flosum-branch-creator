@@ -475,7 +475,6 @@
     <span data-i18n="flosumBranches">Branches Flosum</span>
     <div class="header-right">
       <span class="count-pill" id="branchesCount" style="display:none">—</span>
-      <button class="btn-icon" id="pullBtn" data-i18n-title="pullTitle" title="flosum devops pull">⬇ Pull</button>
       <button class="btn-icon" id="loadBranchesBtn" data-i18n-title="loadTitle" title="Carregar branches">↺</button>
     </div>
   </div>
@@ -989,7 +988,6 @@
   document.getElementById('refreshBtn').addEventListener('click', doRefresh);
   document.getElementById('createBtn').addEventListener('click', doCreate);
   document.getElementById('loadBranchesBtn').addEventListener('click', doLoadBranches);
-  document.getElementById('pullBtn').addEventListener('click', doPull);
 
   document.getElementById('regenBtn').addEventListener('click', () => {
     if (lastSuggestion) {
