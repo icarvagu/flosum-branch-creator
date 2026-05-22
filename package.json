@@ -1,0 +1,47 @@
+{
+  "name": "flosum-branch-creator",
+  "displayName": "Flosum Branch Creator",
+  "description": "Gera branch a partir das alterações locais e faz checkout via Flosum CLI",
+  "version": "0.1.0",
+  "publisher": "local",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "flosum-container",
+          "title": "Flosum",
+          "icon": "icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "flosum-container": [
+        {
+          "id": "flosum.branchView",
+          "name": "Branch Creator",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "flosum.refreshView",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "flosum.refreshView",
+          "when": "view == flosum.branchView",
+          "group": "navigation"
+        }
+      ]
+    }
+  }
+}

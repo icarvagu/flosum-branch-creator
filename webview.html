@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size, 13px);
+    color: var(--vscode-foreground);
+    background: transparent;
+  }
+
+  /* ── Panels ── */
+  .panel {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.18));
+  }
+  .panel:last-child { border-bottom: none; }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 1;
+  }
+
+  .count-pill {
+    opacity: 1;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+  }
+
+  /* ── Org selector ── */
+  .org-select {
+    width: 100%;
+    padding: 5px 8px;
+    background: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border, rgba(128,128,128,0.3));
+    border-radius: 3px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+  }
+  .org-select:focus { border-color: var(--vscode-focusBorder); }
+
+  .org-status {
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    padding: 0 2px;
+    min-height: 14px;
+  }
+  .org-status.connected { color: var(--vscode-terminal-ansiGreen, #89d185); }
+  .org-status.error     { color: var(--vscode-terminal-ansiRed,   #f14c4c); }
+
+  /* ── Staged / Changes sections ── */
+  .changes-group {
+    margin-bottom: 4px;
+  }
+
+  .changes-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    cursor: default;
+    user-select: none;
+  }
+
+  .changes-group-header .group-actions {
+    display: flex;
+    gap: 3px;
+    opacity: 1;
+  }
+
+  .btn-group-action {
+    padding: 1px 5px;
+    font-size: 11px;
+    background: transparent;
+    color: var(--vscode-foreground);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0.6;
+  }
+  .btn-group-action:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
+
+  .meta-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .meta-item:hover { background: var(--vscode-list-hoverBackground); }
+
+  .btn-stage {
+    flex-shrink: 0;
+    padding: 1px 5px;
+    font-size: 13px;
+    line-height: 1;
+    background: transparent;
+    color: var(--vscode-foreground);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .meta-item:hover .btn-stage { opacity: 0.7; }
+  .btn-stage:hover { background: var(--vscode-list-hoverBackground); opacity: 1 !important; }
+
+  .btn-diff {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    background: transparent;
+    color: var(--vscode-textLink-foreground, #3794ff);
+    border: 1px solid var(--vscode-textLink-foreground, #3794ff);
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  .btn-diff:hover { opacity: 1; background: rgba(55,148,255,0.12); }
+
+  .btn-discard {
+    flex-shrink: 0;
+    padding: 1px 5px;
+    font-size: 11px;
+    background: transparent;
+    color: var(--vscode-terminal-ansiRed, #f14c4c);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .meta-item:hover .btn-discard { opacity: 0.7; }
+  .btn-discard:hover { background: rgba(244,75,75,0.15); opacity: 1 !important; }
+
+  .type-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    min-width: 56px;
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+
+  .meta-name {
+    font-size: 12px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .empty-msg {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--vscode-descriptionForeground);
+    padding: 2px 6px;
+  }
+
+  .other-count {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    padding: 0 6px;
+  }
+
+  /* ── Branch input ── */
+  .input-row {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .branch-input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, rgba(128,128,128,0.3));
+    border-radius: 3px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 12px;
+    outline: none;
+  }
+  .branch-input:focus { border-color: var(--vscode-focusBorder); }
+  .branch-input.invalid { border-color: var(--vscode-inputValidation-errorBorder, #f14c4c); }
+
+  .error-msg {
+    display: none;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--vscode-inputValidation-errorForeground, #f48771);
+    padding: 0 2px;
+  }
+  .error-msg.visible { display: block; }
+
+  /* ── Buttons ── */
+  .action-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--vscode-font-family);
+    transition: opacity 0.12s;
+  }
+  button:active { opacity: 0.7; }
+
+  .btn-icon {
+    padding: 3px 7px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    opacity: 1 !important;
+  }
+  .btn-icon:hover { background: var(--vscode-button-secondaryHoverBackground); }
+
+  .btn-regen {
+    padding: 5px 8px;
+    flex-shrink: 0;
+    font-size: 14px;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+  }
+  .btn-regen:hover { background: var(--vscode-button-secondaryHoverBackground); }
+
+  .btn-refresh {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+  }
+  .btn-refresh:hover { background: var(--vscode-button-secondaryHoverBackground); }
+
+  .btn-create {
+    flex: 1;
+    font-weight: 600;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+  }
+  .btn-create:hover { background: var(--vscode-button-hoverBackground); }
+
+  /* ── Branch list (existing branches) ── */
+  .search-input {
+    width: 100%;
+    padding: 5px 8px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, rgba(128,128,128,0.3));
+    border-radius: 3px;
+    font-size: 12px;
+    outline: none;
+    margin-bottom: 6px;
+  }
+  .search-input:focus { border-color: var(--vscode-focusBorder); }
+
+  .branch-scroll {
+    max-height: 210px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .branch-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: default;
+  }
+  .branch-row:hover { background: var(--vscode-list-hoverBackground); }
+
+  .branch-row-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .btn-checkout {
+    flex-shrink: 0;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--vscode-textLink-foreground, #3794ff);
+    border: 1px solid var(--vscode-textLink-foreground, #3794ff);
+    border-radius: 3px;
+    opacity: 0.8;
+  }
+  .btn-checkout:hover { opacity: 1; background: rgba(55,148,255,0.1); }
+
+  .branches-loading {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+    padding: 4px 6px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  /* ── Log ── */
+  .log-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: 130px;
+    overflow-y: auto;
+  }
+
+  .log-entry {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
+    padding: 2px 4px;
+    border-radius: 2px;
+    word-break: break-all;
+    line-height: 1.4;
+  }
+  .log-info    { color: var(--vscode-foreground); opacity: 0.75; }
+  .log-success { color: var(--vscode-terminal-ansiGreen,  #89d185); }
+  .log-error   { color: var(--vscode-terminal-ansiRed,    #f14c4c); }
+  .log-branch  {
+    color: var(--vscode-terminal-ansiCyan, #4ec9b0);
+    font-weight: 600;
+    background: rgba(78,201,176,0.08);
+    border-radius: 3px;
+    padding: 3px 5px;
+    margin: 2px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 0: Org ── -->
+<div class="panel">
+  <div class="panel-header" data-i18n="orgActive">Org ativa</div>
+  <select id="orgSelect" class="org-select">
+    <option value="">Carregando...</option>
+  </select>
+  <div class="org-status" id="orgStatus"></div>
+</div>
+
+<!-- ── 1: Alterações locais ── -->
+<div class="panel">
+  <div class="panel-header">
+    <span data-i18n="changes">Alterações</span>
+    <span class="count-pill" id="totalCount">—</span>
+  </div>
+
+  <!-- Staged -->
+  <div class="changes-group" id="stagedGroup">
+    <div class="changes-group-header">
+      <span><span data-i18n="staged">Staged</span> <span id="stagedCount" class="count-pill">0</span></span>
+      <div class="group-actions">
+        <button class="btn-group-action" id="unstageAllBtn" data-i18n-title="unstageAllTitle" title="Tirar tudo do staged">↓↓</button>
+        <button class="btn-group-action danger" id="discardStagedBtn" data-i18n-title="discardStagedTitle" title="Descartar staged">🗑</button>
+      </div>
+    </div>
+    <ul class="meta-list" id="stagedList">
+      <li class="empty-msg" style="padding-left:6px;font-size:11px" data-i18n="noStaged">Nenhum item staged</li>
+    </ul>
+  </div>
+
+  <!-- Changes -->
+  <div class="changes-group" id="changesGroup">
+    <div class="changes-group-header">
+      <span><span data-i18n="changes">Alterações</span> <span id="changesCount" class="count-pill">0</span></span>
+      <div class="group-actions">
+        <button class="btn-group-action" id="stageAllBtn" data-i18n-title="stageAllTitle" title="Staged tudo">↑↑</button>
+      </div>
+    </div>
+    <ul class="meta-list" id="changesList">
+      <li class="empty-msg" style="padding-left:6px;font-size:11px" data-i18n="noChanges">Carregando...</li>
+    </ul>
+  </div>
+
+  <div class="other-count" id="otherCount" style="display:none;margin-top:4px"></div>
+</div>
+
+<!-- ── 2: Nova branch ── -->
+<div class="panel">
+  <div class="panel-header" data-i18n="newBranch">Nova branch</div>
+  <div class="input-row">
+    <input
+      id="branchInput"
+      type="text"
+      class="branch-input"
+      data-i18n-placeholder="branchPlaceholder"
+      placeholder="feature/TES-XX-descricao"
+      spellcheck="false"
+      autocomplete="off"
+    />
+    <button class="btn-regen" id="regenBtn" data-i18n-title="regenTitle" title="Restaurar sugestão automática">↺</button>
+  </div>
+  <div class="error-msg" id="errorMsg"></div>
+  <div class="action-row">
+    <button class="btn-refresh" id="refreshBtn" data-i18n="refreshBtn">↺ Atualizar</button>
+    <button class="btn-create" id="createBtn" data-i18n="createBtn">🌿 Criar Branch</button>
+  </div>
+</div>
+
+<!-- ── 3: Branches existentes ── -->
+<div class="panel">
+  <div class="panel-header">
+    <span data-i18n="flosumBranches">Branches Flosum</span>
+    <div class="header-right">
+      <span class="count-pill" id="branchesCount" style="display:none">—</span>
+      <button class="btn-icon" id="pullBtn" data-i18n-title="pullTitle" title="flosum devops pull">⬇ Pull</button>
+      <button class="btn-icon" id="loadBranchesBtn" data-i18n-title="loadTitle" title="Carregar branches">↺</button>
+    </div>
+  </div>
+  <input
+    type="text"
+    id="branchSearch"
+    class="search-input"
+    data-i18n-placeholder="filterPlaceholder"
+    placeholder="Filtrar branches..."
+    style="display:none"
+  />
+  <div class="branch-scroll" id="branchList">
+    <div class="empty-msg" data-i18n="loadBranchesHint">Clique em ↺ para carregar a lista</div>
+  </div>
+</div>
+
+<!-- ── 4: Log ── -->
+<div class="panel">
+  <div class="panel-header" data-i18n="logHeader">Log</div>
+  <div class="log-area" id="logArea"></div>
+</div>
+
+<script>
+  const vscode = acquireVsCodeApi();
+
+  // ── i18n ──────────────────────────────────────────────────────────────────
+  const TRANSLATIONS = {
+    pt: {
+      orgActive: 'Org ativa', connectedStatus: 'Conectado',
+      noOrgs: 'Nenhuma org conectada', orgHint: 'Execute: sf org login web',
+      staged: 'Staged', changes: 'Alterações',
+      noStaged: 'Nenhum item staged', noChanges: 'Nenhuma alteração',
+      stageAllTitle: 'Staged tudo', unstageAllTitle: 'Tirar tudo do staged',
+      discardStagedTitle: 'Descartar staged', addStage: 'Adicionar ao staged',
+      removeStage: 'Remover do staged',
+      newBranch: 'Nova branch', branchPlaceholder: 'feature/TES-XX-descricao',
+      regenTitle: 'Restaurar sugestão automática',
+      refreshBtn: '↺ Atualizar', createBtn: '🌿 Criar Branch',
+      flosumBranches: 'Branches Flosum', filterPlaceholder: 'Filtrar branches...',
+      loadBranchesHint: 'Clique em ↺ para carregar a lista',
+      pullTitle: 'Retrieve (flosum devops pull)', loadTitle: 'Carregar branches',
+      logHeader: 'Log', checkoutBtn: 'Checkout',
+      noBranchFound: 'Nenhuma branch encontrada.', noBranchAvailable: 'Nenhuma branch disponível.',
+      errNoStaged: 'Adicione ao menos um item ao Staged.',
+      errBranchEmpty: 'Nome de branch não pode ser vazio.',
+      errBranchSpaces: 'Nome não pode conter espaços.',
+      errBranchInvalid: 'Caractere inválido no nome.',
+      errNoStagedDiscard: 'Nenhum item staged para descartar.',
+      switchingOrg: 'Trocando para org:',
+      refreshingStatus: 'Atualizando git status...',
+      loadingBranches: 'Carregando branches do Flosum...',
+      branchesLoaded: 'branch(es) carregada(s)',
+      metaDetected: 'metadado(s) | arquivo(s)',
+      pullRunning: 'Retrieve branch atual...',
+      otherFiles: 'outro(s) arquivo(s) (tests, configs…)',
+    },
+    en: {
+      orgActive: 'Active Org', connectedStatus: 'Connected',
+      noOrgs: 'No connected orgs', orgHint: 'Run: sf org login web',
+      staged: 'Staged', changes: 'Changes',
+      noStaged: 'No items staged', noChanges: 'No local changes',
+      stageAllTitle: 'Stage all', unstageAllTitle: 'Unstage all',
+      discardStagedTitle: 'Discard staged', addStage: 'Add to staged',
+      removeStage: 'Remove from staged',
+      newBranch: 'New Branch', branchPlaceholder: 'feature/TES-XX-description',
+      regenTitle: 'Restore auto-suggestion',
+      refreshBtn: '↺ Refresh', createBtn: '🌿 Create Branch',
+      flosumBranches: 'Flosum Branches', filterPlaceholder: 'Filter branches...',
+      loadBranchesHint: 'Click ↺ to load the list',
+      pullTitle: 'Retrieve (flosum devops pull)', loadTitle: 'Load branches',
+      logHeader: 'Log', checkoutBtn: 'Checkout',
+      noBranchFound: 'No branch found.', noBranchAvailable: 'No branches available.',
+      errNoStaged: 'Add at least one item to Staged.',
+      errBranchEmpty: 'Branch name cannot be empty.',
+      errBranchSpaces: 'Branch name cannot contain spaces.',
+      errBranchInvalid: 'Invalid character in name.',
+      errNoStagedDiscard: 'No staged items to discard.',
+      switchingOrg: 'Switching to org:',
+      refreshingStatus: 'Refreshing git status...',
+      loadingBranches: 'Loading Flosum branches...',
+      branchesLoaded: 'branch(es) loaded',
+      metaDetected: 'metadata | file(s)',
+      pullRunning: 'Retrieving current branch...',
+      otherFiles: 'other file(s) (tests, configs…)',
+    },
+  };
+
+  let t = TRANSLATIONS.pt; // default até receber locale
+
+  function applyLocale(locale) {
+    t = TRANSLATIONS[locale.toLowerCase().startsWith('pt') ? 'pt' : 'en'];
+    // Atualiza textos estáticos via data-i18n
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if (t[key] !== undefined) el.textContent = t[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.dataset.i18nPlaceholder;
+      if (t[key] !== undefined) el.placeholder = t[key];
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.dataset.i18nTitle;
+      if (t[key] !== undefined) el.title = t[key];
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const TYPE_COLORS = {
+    classes:        { bg: '#1b3d60', fg: '#5faae5' },
+    triggers:       { bg: '#3b1250', fg: '#c586c0' },
+    lwc:            { bg: '#0c3333', fg: '#4ec9b0' },
+    aura:           { bg: '#442010', fg: '#ce9178' },
+    flows:          { bg: '#363000', fg: '#dcdcaa' },
+    objects:        { bg: '#162e16', fg: '#6db36d' },
+    permissionsets: { bg: '#3a1515', fg: '#e07b53' },
+    layouts:        { bg: '#1a1a3e', fg: '#8888d0' },
+  };
+  const DEFAULT_COLORS = {
+    bg: 'var(--vscode-badge-background)',
+    fg: 'var(--vscode-badge-foreground)',
+  };
+
+  let lastSuggestion = '';
+  let userEdited = false;
+  let allBranches = [];
+  let allOrgs = [];
+
+  const metaList     = document.getElementById('metaList');
+  const otherCount   = document.getElementById('otherCount');
+  const totalCount   = document.getElementById('totalCount');
+  const branchInput  = document.getElementById('branchInput');
+  const errorMsg     = document.getElementById('errorMsg');
+  const logArea      = document.getElementById('logArea');
+  const branchList   = document.getElementById('branchList');
+  const branchSearch = document.getElementById('branchSearch');
+  const branchesCount = document.getElementById('branchesCount');
+
+  // ── Org ──
+  function renderOrgs(orgs, current) {
+    allOrgs = orgs;
+    const sel = document.getElementById('orgSelect');
+    const status = document.getElementById('orgStatus');
+    sel.innerHTML = '';
+
+    if (orgs.length === 0) {
+      sel.innerHTML = `<option value="">${t.noOrgs}</option>`;
+      status.textContent = t.orgHint;
+      status.className = 'org-status error';
+      return;
+    }
+
+    for (const o of orgs) {
+      const opt = document.createElement('option');
+      const label = o.alias ? `${o.alias} — ${o.username}` : o.username;
+      opt.value = o.alias || o.username;
+      opt.textContent = label;
+      if (o.alias === current || o.username === current) opt.selected = true;
+      sel.appendChild(opt);
+    }
+
+    const active = orgs.find(o => o.alias === current || o.username === current);
+    if (active) {
+      status.textContent = `● ${active.status}`;
+      status.className = `org-status ${active.status === 'Connected' ? 'connected' : 'error'}`;
+    } else {
+      status.textContent = '';
+      status.className = 'org-status';
+    }
+  }
+
+  // ── Actions ──
+  function doRefresh() {
+    userEdited = false;
+    vscode.postMessage({ command: 'refresh' });
+    addLog(t.refreshingStatus, 'info');
+  }
+
+  function doCreate() {
+    const name = branchInput.value.trim();
+    if (!name) { showError(t.errBranchEmpty); return; }
+    if (/\s/.test(name)) { showError(t.errBranchSpaces); return; }
+    if (/[^a-zA-Z0-9\-_\/.]/.test(name)) { showError(t.errBranchInvalid); return; }
+    clearError();
+
+    const selectedFiles = getStagedFiles();
+    if (!selectedFiles.length) {
+      showError(t.errNoStaged);
+      return;
+    }
+
+    vscode.postMessage({
+      command: 'createBranch',
+      branchName: name,
+      selectedFiles,
+    });
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('visible');
+    branchInput.classList.add('invalid');
+  }
+
+  function clearError() {
+    errorMsg.classList.remove('visible');
+    branchInput.classList.remove('invalid');
+  }
+
+  function doLoadBranches() {
+    vscode.postMessage({ command: 'loadBranches' });
+    addLog(t.loadingBranches, 'info');
+  }
+
+  function doPull() {
+    vscode.postMessage({ command: 'pullBranch' });
+  }
+
+  function doCheckout(name) {
+    vscode.postMessage({ command: 'checkoutBranch', branchName: name });
+  }
+
+  // ── Render branches list ──
+  function renderBranches(branches) {
+    allBranches = branches;
+    filterBranches(branchSearch.value);
+    branchesCount.textContent = branches.length;
+    branchesCount.style.display = 'inline-block';
+    branchSearch.style.display = branches.length > 5 ? 'block' : 'none';
+  }
+
+  function filterBranches(query) {
+    const q = query.trim().toLowerCase();
+    const filtered = q ? allBranches.filter(b => b.name.toLowerCase().includes(q)) : allBranches;
+
+    branchList.innerHTML = '';
+    if (filtered.length === 0) {
+      const el = document.createElement('div');
+      el.className = 'empty-msg';
+      el.textContent = q ? t.noBranchFound : t.noBranchAvailable;
+      branchList.appendChild(el);
+      return;
+    }
+
+    for (const b of filtered) {
+      const row = document.createElement('div');
+      row.className = 'branch-row';
+
+      const name = document.createElement('span');
+      name.className = 'branch-row-name';
+      name.textContent = b.name;
+      name.title = b.name;
+
+      const btn = document.createElement('button');
+      btn.className = 'btn-checkout';
+      btn.textContent = t.checkoutBtn;
+      btn.addEventListener('click', () => doCheckout(b.name));
+
+      row.appendChild(name);
+      row.appendChild(btn);
+      branchList.appendChild(row);
+    }
+  }
+
+  // ── Log ──
+  function addLog(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.className = `log-entry log-${type}`;
+    const t = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.textContent = `${t}  ${msg}`;
+    logArea.appendChild(el);
+    logArea.scrollTop = logArea.scrollHeight;
+    while (logArea.children.length > 40) logArea.removeChild(logArea.firstChild);
+  }
+
+  // ── Staged state ──
+  // staged = Set de keys "type/name" que estão no staged
+  let stagedKeys = new Set();
+  let allMetadataMap = new Map(); // key → item
+
+  function getStagedFiles() {
+    const files = [];
+    for (const key of stagedKeys) {
+      const m = allMetadataMap.get(key);
+      if (m) files.push(...(m.files || []));
+    }
+    return files;
+  }
+
+  function makeItemKey(m) { return `${m.type}/${m.name}`; }
+
+  // ── Render metadata (staged / changes) ──
+  function renderMetadata(metadata, changes, otherFilesCount) {
+    totalCount.textContent = changes.length;
+
+    // Reconstrói o map
+    allMetadataMap = new Map(metadata.map(m => [makeItemKey(m), m]));
+
+    // Remove do staged items que já não existem mais
+    for (const k of stagedKeys) {
+      if (!allMetadataMap.has(k)) stagedKeys.delete(k);
+    }
+
+    const stagedList   = document.getElementById('stagedList');
+    const changesList  = document.getElementById('changesList');
+    const stagedCount  = document.getElementById('stagedCount');
+    const changesCount = document.getElementById('changesCount');
+
+    const staged  = metadata.filter(m => stagedKeys.has(makeItemKey(m)));
+    const changes_ = metadata.filter(m => !stagedKeys.has(makeItemKey(m)));
+
+    stagedCount.textContent  = staged.length;
+    changesCount.textContent = changes_.length;
+
+    renderGroup(stagedList,  staged,  'unstage'); // botão = tirar do staged
+    renderGroup(changesList, changes_, 'stage');  // botão = adicionar ao staged
+
+    if (otherFilesCount > 0) {
+      otherCount.textContent = `+ ${otherFilesCount} ${t.otherFiles}`;
+      otherCount.style.display = 'block';
+    } else {
+      otherCount.style.display = 'none';
+    }
+  }
+
+  function renderGroup(listEl, items, action) {
+    listEl.innerHTML = '';
+    if (items.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'empty-msg';
+      li.style.cssText = 'padding-left:6px;font-size:11px';
+      li.textContent = action === 'stage' ? t.noChanges : t.noStaged;
+      listEl.appendChild(li);
+      return;
+    }
+
+    for (const m of items) {
+      const key = makeItemKey(m);
+      const li = document.createElement('li');
+      li.className = 'meta-item';
+
+      // Botão stage / unstage
+      const btnStage = document.createElement('button');
+      btnStage.className = 'btn-stage';
+      btnStage.textContent = action === 'stage' ? '+' : '−';
+      btnStage.title = action === 'stage' ? t.addStage : t.removeStage;
+      btnStage.addEventListener('click', e => {
+        e.stopPropagation();
+        if (action === 'stage') stagedKeys.add(key);
+        else stagedKeys.delete(key);
+        rerenderMetadata();
+      });
+
+      const colors = TYPE_COLORS[m.type] || DEFAULT_COLORS;
+      const badge = document.createElement('span');
+      badge.className = 'type-badge';
+      badge.textContent = m.type;
+      badge.style.background = colors.bg;
+      badge.style.color = colors.fg;
+
+      const name = document.createElement('span');
+      name.className = 'meta-name';
+      name.textContent = m.name;
+      name.title = (m.files || []).join('\n');
+
+      const btnDiff = document.createElement('button');
+      btnDiff.className = 'btn-diff';
+      btnDiff.textContent = 'diff';
+      btnDiff.title = `Ver diff de ${m.name}`;
+      btnDiff.addEventListener('click', e => {
+        e.stopPropagation();
+        const main = (m.files || []).find(f => !f.endsWith('-meta.xml')) || m.files?.[0];
+        if (main) vscode.postMessage({ command: 'openDiff', file: main });
+      });
+
+      const btnDiscard = document.createElement('button');
+      btnDiscard.className = 'btn-discard';
+      btnDiscard.textContent = '🗑';
+      btnDiscard.title = `Descartar ${m.name}`;
+      btnDiscard.addEventListener('click', e => {
+        e.stopPropagation();
+        if (m.files?.length) {
+          stagedKeys.delete(key);
+          vscode.postMessage({ command: 'discardFiles', files: m.files });
+        }
+      });
+
+      // Clique no item = toggle stage
+      li.addEventListener('click', () => {
+        if (action === 'stage') stagedKeys.add(key);
+        else stagedKeys.delete(key);
+        rerenderMetadata();
+      });
+
+      li.appendChild(btnStage);
+      li.appendChild(badge);
+      li.appendChild(name);
+      li.appendChild(btnDiff);
+      li.appendChild(btnDiscard);
+      listEl.appendChild(li);
+    }
+  }
+
+  // Re-renderiza sem ir ao servidor (apenas redistribui staged/changes)
+  let _lastMetadata = [], _lastChanges = [], _lastOtherCount = 0;
+  function rerenderMetadata() {
+    renderMetadata(_lastMetadata, _lastChanges, _lastOtherCount);
+    // atualiza sugestão de nome se user não editou
+    if (!userEdited) {
+      const staged = _lastMetadata.filter(m => stagedKeys.has(makeItemKey(m)));
+      const src = staged.length ? staged : _lastMetadata;
+      lastSuggestion = generateBranchNameFromMeta(src);
+      branchInput.value = lastSuggestion;
+    }
+  }
+
+  function generateBranchNameFromMeta(meta) {
+    if (!meta.length) return '';
+    const slugs = [...new Set(meta.slice(0, 3).map(m =>
+      m.name.replace(/([A-Z])/g, (_, c) => '-' + c.toLowerCase()).replace(/^-/, '')
+    ))];
+    return `feature/${slugs.join('-')}`;
+  }
+
+  // ── Message handler ──
+  window.addEventListener('message', e => {
+    const msg = e.data;
+    switch (msg.command) {
+
+      case 'setLocale':
+        applyLocale(msg.locale);
+        break;
+
+      case 'orgs':
+        renderOrgs(msg.orgs, msg.current);
+        break;
+
+      case 'orgsError':
+        document.getElementById('orgStatus').textContent = '❌ ' + msg.message;
+        document.getElementById('orgStatus').className = 'org-status error';
+        break;
+
+      case 'update':
+        _lastMetadata   = msg.metadata;
+        _lastChanges    = msg.changes;
+        _lastOtherCount = msg.otherCount || 0;
+        renderMetadata(msg.metadata, msg.changes, msg.otherCount || 0);
+        lastSuggestion = msg.suggestion;
+        if (!userEdited) branchInput.value = msg.suggestion;
+        clearError();
+        addLog(`${msg.metadata.length} / ${msg.changes.length} ${t.metaDetected}`, 'success');
+        break;
+
+      case 'branchCreated': {
+        const el = document.createElement('div');
+        el.className = 'log-entry log-branch';
+        el.textContent = `✅ Branch: ${msg.branchName}`;
+        logArea.appendChild(el);
+        logArea.scrollTop = logArea.scrollHeight;
+        break;
+      }
+
+      case 'branchesLoading':
+        branchList.innerHTML = '<div class="branches-loading">Carregando...</div>';
+        branchSearch.style.display = 'none';
+        branchesCount.style.display = 'none';
+        break;
+
+      case 'branches':
+        renderBranches(msg.branches);
+        addLog(`${msg.branches.length} ${t.branchesLoaded}`, 'success');
+        break;
+
+      case 'branchesNotInit': {
+        branchSearch.style.display = 'none';
+        branchesCount.style.display = 'none';
+        branchList.innerHTML = `
+          <div style="padding:6px;font-size:12px;line-height:1.6;color:var(--vscode-descriptionForeground)">
+            ⚠️ ${msg.message}
+          </div>`;
+        addLog('⚠️ ' + msg.message, 'error');
+        break;
+      }
+
+      case 'branchesError':
+        branchList.innerHTML = `<div class="empty-msg">❌ ${msg.message}</div>`;
+        addLog('Erro: ' + msg.message, 'error');
+        break;
+
+      case 'log':
+        addLog(msg.message, msg.type || 'info');
+        break;
+
+      case 'error':
+        addLog('❌ ' + msg.message, 'error');
+        break;
+    }
+  });
+
+  // ── Event listeners ──
+  document.getElementById('refreshBtn').addEventListener('click', doRefresh);
+  document.getElementById('createBtn').addEventListener('click', doCreate);
+  document.getElementById('loadBranchesBtn').addEventListener('click', doLoadBranches);
+  document.getElementById('pullBtn').addEventListener('click', doPull);
+
+  document.getElementById('regenBtn').addEventListener('click', () => {
+    if (lastSuggestion) {
+      branchInput.value = lastSuggestion;
+      userEdited = false;
+      clearError();
+    }
+  });
+
+  branchInput.addEventListener('input', () => { userEdited = true; clearError(); });
+  branchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doCreate(); });
+  branchSearch.addEventListener('input', e => filterBranches(e.target.value));
+
+  // Stage all / Unstage all / Discard staged
+  document.getElementById('stageAllBtn').addEventListener('click', () => {
+    for (const [k] of allMetadataMap) stagedKeys.add(k);
+    rerenderMetadata();
+  });
+
+  document.getElementById('unstageAllBtn').addEventListener('click', () => {
+    stagedKeys.clear();
+    rerenderMetadata();
+  });
+
+  document.getElementById('discardStagedBtn').addEventListener('click', () => {
+    const files = getStagedFiles();
+    if (!files.length) { addLog(t.errNoStagedDiscard, 'error'); return; }
+    stagedKeys.clear();
+    vscode.postMessage({ command: 'discardFiles', files });
+  });
+
+  document.getElementById('orgSelect').addEventListener('change', function () {
+    const alias = this.value;
+    if (!alias) return;
+    const org = allOrgs.find(o => (o.alias || o.username) === alias);
+    const status = document.getElementById('orgStatus');
+    status.textContent = `● ${org?.status || ''}`;
+    status.className = `org-status ${org?.status === 'Connected' ? 'connected' : 'error'}`;
+    vscode.postMessage({ command: 'setOrg', alias });
+    addLog(`${t.switchingOrg} ${alias}`, 'info');
+  });
+
+  // ── Initial load ──
+  vscode.postMessage({ command: 'loadOrgs' });
+  doRefresh();
+</script>
+</body>
+</html>
