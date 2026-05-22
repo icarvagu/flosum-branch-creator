@@ -25,16 +25,22 @@ function extractMetadata(changes) {
   for (const { file } of changes) {
     const parts = file.split('/');
     const idx = parts.findIndex(p => SF_METADATA_DIRS.has(p));
-    if (idx < 0 || !parts[idx + 1]) continue;
-    const name = stripMetaExtension(parts[idx + 1]);
-    if (!name) continue;
-    const key = `${parts[idx]}/${name}`;
-    if (!itemMap.has(key)) {
-      itemMap.set(key, { name, type: parts[idx], files: [], isTest: TEST_RE.test(name) });
+    if (idx >= 0 && parts[idx + 1]) {
+      const name = stripMetaExtension(parts[idx + 1]);
+      if (!name) continue;
+      const key = `${parts[idx]}/${name}`;
+      if (!itemMap.has(key)) {
+        itemMap.set(key, { name, type: parts[idx], files: [], isTest: TEST_RE.test(name) });
+      }
+      itemMap.get(key).files.push(file);
+    } else {
+      const name = parts[parts.length - 1];
+      const type = parts.length > 1 ? parts[parts.length - 2] : 'root';
+      const key = `other/${file}`;
+      itemMap.set(key, { name, type, files: [file], isTest: false });
     }
-    itemMap.get(key).files.push(file);
   }
-  return [...itemMap.values()].filter(m => !m.isTest);
+  return [...itemMap.values()];
 }
 
 function toKebab(str) {
