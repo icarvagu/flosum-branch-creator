@@ -1,13 +1,24 @@
 {
   "name": "flosum-branch-creator",
   "displayName": "Flosum Branch Creator",
-  "description": "Gera branch a partir das alterações locais e faz checkout via Flosum CLI",
+  "description": "Sidebar for Flosum DevOps: staged/changes view, selective push, branch retrieve, auto-refresh and diff support",
   "version": "0.1.0",
-  "publisher": "local",
+  "publisher": "icarvagu",
+  "author": { "name": "Igor Carvalho Guedes" },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/icarvagu/flosum-branch-creator"
+  },
+  "bugs": { "url": "https://github.com/icarvagu/flosum-branch-creator/issues" },
+  "homepage": "https://github.com/icarvagu/flosum-branch-creator#readme",
+  "keywords": ["flosum", "salesforce", "devops", "branch", "sf", "sfdx"],
+  "categories": ["SCM Providers", "Other"],
   "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other"],
   "activationEvents": [],
   "main": "./extension.js",
+  "icon": "icon.png",
+  "galleryBanner": { "color": "#1e1e2e", "theme": "dark" },
   "contributes": {
     "viewsContainers": {
       "activitybar": [
